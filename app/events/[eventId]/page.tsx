@@ -48,27 +48,22 @@ export default function EventDashboardPage() {
       {/* Main Sections Toggles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Hotels Section Toggle */}
-        <button
-          onClick={() => handleSectionClick('hotels')}
-          className={`p-6 rounded-xl border text-left transition-all duration-200 group ${
-            activeSection === 'hotels'
-              ? 'bg-blue-600 border-blue-600 shadow-md transform scale-[1.02]'
-              : 'bg-white border-neutral-200 hover:border-neutral-300 hover:shadow-sm'
-          }`}
+        <Link
+          href={`/events/${eventId}/hotels`}
+          className="p-6 rounded-xl border text-left transition-all duration-200 group bg-white border-neutral-200 hover:border-blue-300 hover:shadow-sm"
         >
           <div className="flex items-center justify-between mb-4">
-            <span className={`p-2 rounded-lg ${activeSection === 'hotels' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+            <span className="p-2 rounded-lg bg-blue-50 text-blue-600">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </span>
-            {activeSection === 'hotels' && <div className="w-2 h-2 rounded-full bg-white animate-pulse" />}
           </div>
-          <h3 className={`text-lg font-semibold ${activeSection === 'hotels' ? 'text-white' : 'text-neutral-900'}`}>Hotels</h3>
-          <p className={`text-sm mt-1 ${activeSection === 'hotels' ? 'text-white/80' : 'text-neutral-500'}`}>
-            Manage hotel allocations and room mappings.
+          <h3 className="text-lg font-semibold text-neutral-900">Hotels</h3>
+          <p className="text-sm mt-1 text-neutral-500">
+            Browse and manage hotel allocations.
           </p>
-        </button>
+        </Link>
 
         {/* Guests Section Toggle */}
         <button
@@ -119,69 +114,6 @@ export default function EventDashboardPage() {
 
       {/* Dynamic Content Section */}
       <div className="min-h-[300px] transition-all duration-500 ease-in-out">
-        {activeSection === 'hotels' && (
-           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-neutral-900">Registered Hotels</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {HOTELS.map((hotel) => {
-                  const isSelected = selectedHotelId === hotel.id;
-                  
-                  return (
-                    <div
-                      key={hotel.id}
-                      onClick={(e) => handleHotelSelect(hotel.id, e)}
-                      className={`cursor-pointer rounded-xl border p-6 transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-blue-600 border-blue-600 shadow-xl ring-4 ring-blue-100'
-                          : 'bg-white border-neutral-200 hover:border-blue-300 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className={`font-semibold text-lg ${isSelected ? 'text-white' : 'text-neutral-900'}`}>
-                            {hotel.name}
-                          </h3>
-                          <p className={`text-sm mt-1 ${isSelected ? 'text-white/90' : 'text-neutral-500'}`}>
-                            {hotel.location}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className="bg-white/20 p-1.5 rounded-full text-white">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className={`mt-6 flex items-center gap-2 text-sm ${isSelected ? 'text-white/90' : 'text-neutral-500'}`}>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <span>{hotel.rooms} Rooms Available</span>
-                      </div>
-
-                      {isSelected && (
-                          <div className="mt-6 pt-6 border-t border-white/20 animate-in fade-in zoom-in-95 duration-200">
-                             <Link
-                                href={`/events/${eventId}/hotels/${hotel.id}/rooms`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-full block text-center bg-white text-blue-600 font-semibold py-2.5 rounded-lg hover:bg-neutral-50 transition-colors shadow-sm"
-                             >
-                                Map Rooms
-                             </Link>
-                          </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-           </div>
-        )}
-
         {activeSection === 'guests' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
                 <div className="flex justify-between items-center">
