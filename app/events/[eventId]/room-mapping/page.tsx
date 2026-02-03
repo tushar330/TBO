@@ -1,7 +1,7 @@
 'use client';
 
-import { use } from 'react';
-import { useState } from 'react';
+import { use, useEffect, useState } from 'react';
+import { HOTELS, RoomType } from '../hotels/data';
 
 interface Guest {
   id: string;
@@ -17,9 +17,9 @@ interface Room {
   assigned: Guest[];
 }
 
-export default function RoomMappingPage({ }: { params: Promise<{ eventId: string }> }) {
+export default function RoomMappingPage({ params }: { params: Promise<{ eventId: string }> }) {
+  const { eventId } = use(params);
 
-  
   // State for guests and rooms
   const [unassignedGuests, setUnassignedGuests] = useState<Guest[]>([
     { id: '1', name: 'Rajesh Kumar', occupancy: 2 },
@@ -28,11 +28,53 @@ export default function RoomMappingPage({ }: { params: Promise<{ eventId: string
     { id: '4', name: 'Sneha Reddy', occupancy: 2 },
   ]);
 
-  const [rooms, setRooms] = useState<Room[]>([
-    { id: 'r1', hotel: 'The Grand Palace', type: 'Deluxe Room', capacity: 2, assigned: [] },
-    { id: 'r2', hotel: 'The Grand Palace', type: 'Premium Suite', capacity: 3, assigned: [] },
-    { id: 'r3', hotel: 'Royal Retreat', type: 'Executive Suite', capacity: 2, assigned: [] },
-  ]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  useEffect(() => {
+      const savedMapping = localStorage.getItem(`mapping_${eventId}`);
+      
+      if (savedMapping) {
+          const { hotelId, selectedRooms } = JSON.parse(savedMapping);
+          const hotel = HOTELS.find(h => h.id === hotelId);
+
+          if (hotel && selectedRooms) {
+              const generatedRooms: Room[] = [];
+              
+              // Iterate over purchased room types
+              Object.entries(selectedRooms).forEach(([roomId, count]) => {
+                  const qty = count as number;
+                  if (qty > 0) {
+                      // Find details for this room ID
+                      let roomDetails: RoomType | undefined;
+                      Object.values(hotel.rooms).forEach((category: any) => {
+                          const found = category.find((r: RoomType) => r.id === Number(roomId));
+                          if (found) roomDetails = found;
+                      });
+
+                      if (roomDetails) {
+                          // Generate N instances
+                          for (let i = 0; i < qty; i++) {
+                              generatedRooms.push({
+                                  id: `${roomDetails.id}-${i}`, // Unique ID for this instance
+                                  hotel: hotel.name,
+                                  type: roomDetails.name,
+                                  capacity: roomDetails.capacity,
+                                  assigned: []
+                              });
+                          }
+                      }
+                  }
+              });
+              setRooms(generatedRooms);
+          }
+      } else {
+          // Fallback / Demo Data if nothing saved
+          setRooms([
+            { id: 'r1', hotel: 'The Grand Palace', type: 'Deluxe Room', capacity: 2, assigned: [] },
+            { id: 'r2', hotel: 'The Grand Palace', type: 'Premium Suite', capacity: 3, assigned: [] },
+          ]);
+      }
+  }, [eventId]);
 
   const [draggedGuest, setDraggedGuest] = useState<{ guest: Guest, source: 'unassigned' | string } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);

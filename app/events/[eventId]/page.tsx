@@ -46,7 +46,7 @@ export default function EventDashboardPage() {
       </div>
 
       {/* Main Sections Toggles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Hotels Section Toggle */}
         <Link
           href={`/events/${eventId}/hotels`}
@@ -62,6 +62,24 @@ export default function EventDashboardPage() {
           <h3 className="text-lg font-semibold text-neutral-900">Hotels</h3>
           <p className="text-sm mt-1 text-neutral-500">
             Browse and manage hotel allocations.
+          </p>
+        </Link>
+
+        {/* Room Mapping Section Toggle */}
+        <Link
+          href={`/events/${eventId}/room-mapping`}
+          className="p-6 rounded-xl border text-left transition-all duration-200 group bg-white border-neutral-200 hover:border-indigo-300 hover:shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <span className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+            </span>
+          </div>
+          <h3 className="text-lg font-semibold text-neutral-900">Room Mapping</h3>
+          <p className="text-sm mt-1 text-neutral-500">
+            Visualize and assign rooms.
           </p>
         </Link>
 

@@ -9,7 +9,7 @@ import { HOTELS } from './data';
 
 const SearchBar = ({ onSearch }: { onSearch: (query: string) => void }) => {
   return (
-    <div className="bg-corporate-blue-600 p-6 rounded-xl shadow-lg mb-8 text-white">
+    <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 rounded-xl shadow-lg mb-8 text-white">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-4 relative">
           <label className="block text-xs uppercase font-bold text-blue-200 mb-1">City, Hotel, or Area</label>
@@ -144,6 +144,65 @@ const FilterPanel = ({ filters, setFilters }: { filters: any, setFilters: any })
   );
 };
 
+// --- Room Cluster Component ---
+
+interface RoomCluster {
+  id: string;
+  label: string;
+  occupants: number;
+  count: number;
+}
+
+const RoomClusterSelector = ({ clusters, setClusters }: { clusters: RoomCluster[], setClusters: any }) => {
+  const updateCount = (id: string, delta: number) => {
+    setClusters((prev: RoomCluster[]) => prev.map(c => 
+      c.id === id ? { ...c, count: Math.max(0, c.count + delta) } : c
+    ));
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {clusters.map((cluster) => (
+        <div key={cluster.id} className="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 flex flex-col items-center justify-center transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 mb-2 text-neutral-600">
+             {/* Icon based on occupants */}
+             <div className="flex">
+                {[...Array(cluster.occupants)].map((_, i) => (
+                    <svg key={i} className={`w-5 h-5 ${i > 0 ? '-ml-2' : ''} text-blue-500`} fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                ))}
+             </div>
+             <span className="font-semibold text-sm">{cluster.label}</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={() => updateCount(cluster.id, -1)}
+                    className="w-8 h-8 rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 flex items-center justify-center font-bold disabled:opacity-50"
+                    disabled={cluster.count <= 0}
+                >
+                    -
+                </button>
+                <span className={`text-lg font-bold ${cluster.count > 0 ? 'text-blue-600' : 'text-neutral-400'}`}>
+                    {cluster.count}
+                </span>
+                <button 
+                    onClick={() => updateCount(cluster.id, 1)}
+                    className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold"
+                >
+                    +
+                </button>
+            </div>
+             <div className="text-xs text-neutral-400 mt-1">
+                {cluster.occupants} Person{cluster.occupants > 1 ? 's' : ''}
+            </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // --- Page Component ---
 
 export default function HotelListingPage() {
@@ -159,6 +218,13 @@ export default function HotelListingPage() {
     type: [] as string[]
   });
   const [sortOption, setSortOption] = useState<'price_low' | 'price_high' | 'rating' | 'popularity'>('popularity');
+
+  const [roomClusters, setRoomClusters] = useState<RoomCluster[]>([
+    { id: 'single', label: 'Single', occupants: 1, count: 5 },
+    { id: 'double', label: 'Double', occupants: 2, count: 10 },
+    { id: 'triple', label: 'Triple', occupants: 3, count: 2 },
+    { id: 'quad', label: 'Quad', occupants: 4, count: 0 },
+  ]);
 
   // Filter & Sort Logic
   const filteredHotels = useMemo(() => {
@@ -195,6 +261,14 @@ export default function HotelListingPage() {
   }, [filters, searchQuery, sortOption]);
 
   const handleSelectHotel = (hotelId: string) => {
+      // Save current demand/clusters to localStorage for the details page
+      const demand = roomClusters.reduce((acc, cluster) => {
+        acc[cluster.id] = cluster.count;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      localStorage.setItem(`demand_${eventId}`, JSON.stringify(demand));
+      
       router.push(`/events/${eventId}/hotels/${hotelId}`);
   };
 
@@ -202,6 +276,9 @@ export default function HotelListingPage() {
     <div className="min-h-screen bg-neutral-50 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* Room Cluster Selector */}
+        <RoomClusterSelector clusters={roomClusters} setClusters={setRoomClusters} />
+
         {/* Top Search */}
         <SearchBar onSearch={setSearchQuery} />
 
