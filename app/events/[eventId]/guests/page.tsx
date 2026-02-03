@@ -15,7 +15,6 @@ export default function GuestsPage({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = use(params);
-
   // Form state
   const [userName, setUserName] = useState("");
   const [familyMemberCount, setFamilyMemberCount] = useState("1");
