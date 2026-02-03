@@ -38,3 +38,48 @@ export interface MetricData {
     change?: number;
     trend?: 'up' | 'down' | 'neutral';
 }
+
+export interface HeadGuest {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    eventId: string;
+    subGroupName: string; // e.g., "Bride's Family"
+}
+
+export interface SubGuest {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    headGuestId: string;
+    roomGroupId?: string; // null if unassigned
+}
+
+export interface RoomAllocation {
+    id: string;
+    eventId: string;
+    headGuestId: string;
+    roomType: string; // e.g., "Deluxe Room", "Suite"
+    maxCapacity: number;
+    hotelName: string;
+}
+
+export interface RoomGroup {
+    id: string;
+    allocationId: string;
+    guestIds: string[]; // SubGuest IDs assigned to this room
+    customLabel?: string; // Optional custom name for the room
+}
+
+export interface CuratedVenue {
+    id: string;
+    name: string;
+    location: string;
+    description: string;
+    images: string[];
+    amenities: string[];
+    eventId: string;
+    // Note: No pricing information exposed to Head Guests
+}
