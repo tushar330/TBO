@@ -212,15 +212,21 @@ export default function EventDashboardPage() {
   );
 }
 
-// Payment Section Component
+// Payment Section Component (Agent View)
 function PaymentSection() {
   const [markupType, setMarkupType] = useState<'percent' | 'fixed'>('percent');
   const [markupValue, setMarkupValue] = useState<number>(10);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // CONSTANTS & MOCK DATA
   const BASE_COST = 12500; // Base cost of rooms/services
   const TAX_RATE = 0.18;   // 18% Tax
+
+  const ALLOCATIONS = [
+    { type: 'Deluxe Room', count: 5, rate: 1200, total: 6000 },
+    { type: 'Premium Suite', count: 2, rate: 2000, total: 4000 },
+    { type: 'Executive Suite', count: 1, rate: 2500, total: 2500 },
+  ];
 
   // CALCULATIONS
   const markupAmount = markupType === 'percent' 
@@ -231,16 +237,21 @@ function PaymentSection() {
   const taxAmount = subtotal * TAX_RATE;
   const total = subtotal + taxAmount;
 
+  const handleGenerateLink = () => {
+    setIsGenerating(true);
+    setTimeout(() => setIsGenerating(false), 1500);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* LEFT: Payment Methods & Configuration */}
+      {/* LEFT: Configuration & Details */}
       <div className="lg:col-span-2 space-y-6">
         
         {/* Markup Configuration */}
         <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-neutral-900">Markup Configuration</h3>
-             <span className="text-xs font-medium px-2 py-1 bg-neutral-100 rounded text-neutral-600">Admin Only</span>
+            <h3 className="text-lg font-semibold text-neutral-900">Agent Markup Configuration</h3>
+             <span className="text-xs font-medium px-2 py-1 bg-neutral-100 rounded text-neutral-600">Internal Use</span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -278,60 +289,53 @@ function PaymentSection() {
           </div>
         </div>
 
-        {/* Payment Method Selection */}
+        {/* Room Allocation Summary */}
         <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-sm">
-           <h3 className="text-lg font-semibold text-neutral-900 mb-6">Payment Method</h3>
+           <h3 className="text-lg font-semibold text-neutral-900 mb-6">Room Allocation Summary</h3>
            
-           <div className="space-y-4">
-              <label className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-emerald-500 bg-emerald-50/10' : 'border-neutral-200'}`}>
-                 <input 
-                    type="radio" 
-                    name="payment" 
-                    checked={paymentMethod === 'card'} 
-                    onChange={() => setPaymentMethod('card')}
-                    className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
-                 />
-                 <div className="flex-1">
-                    <span className="block font-medium text-neutral-900">Credit / Debit Card</span>
-                    <span className="text-sm text-neutral-500">Instant processing with small fee</span>
-                 </div>
-                 <div className="flex gap-2">
-                    <div className="w-8 h-5 bg-neutral-200 rounded"></div>
-                    <div className="w-8 h-5 bg-neutral-200 rounded"></div>
-                 </div>
-              </label>
-
-              <label className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'bank' ? 'border-emerald-500 bg-emerald-50/10' : 'border-neutral-200'}`}>
-                 <input 
-                    type="radio" 
-                    name="payment" 
-                    checked={paymentMethod === 'bank'} 
-                    onChange={() => setPaymentMethod('bank')}
-                    className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
-                 />
-                 <div className="flex-1">
-                    <span className="block font-medium text-neutral-900">Bank Transfer</span>
-                    <span className="text-sm text-neutral-500">2-3 bussiess days</span>
-                 </div>
-              </label>
+           <div className="overflow-hidden rounded-lg border border-neutral-200">
+               <table className="w-full text-sm text-left">
+                   <thead className="bg-neutral-50 text-neutral-700 font-medium">
+                       <tr>
+                           <th className="px-4 py-3">Room Type</th>
+                           <th className="px-4 py-3 text-center">Allocated</th>
+                           <th className="px-4 py-3 text-right">Base Rate</th>
+                           <th className="px-4 py-3 text-right">Total</th>
+                       </tr>
+                   </thead>
+                   <tbody className="divide-y divide-neutral-200">
+                       {ALLOCATIONS.map((room, idx) => (
+                           <tr key={idx} className="bg-white hover:bg-neutral-50">
+                               <td className="px-4 py-3 text-neutral-900 font-medium">{room.type}</td>
+                               <td className="px-4 py-3 text-neutral-600 text-center">{room.count}</td>
+                               <td className="px-4 py-3 text-neutral-600 text-right">${room.rate.toLocaleString()}</td>
+                               <td className="px-4 py-3 text-neutral-900 text-right font-medium">${room.total.toLocaleString()}</td>
+                           </tr>
+                       ))}
+                       <tr className="bg-neutral-50">
+                           <td colSpan={3} className="px-4 py-3 text-right font-semibold text-neutral-900">Total Base Cost</td>
+                           <td className="px-4 py-3 text-right font-bold text-neutral-900">${BASE_COST.toLocaleString()}</td>
+                       </tr>
+                   </tbody>
+               </table>
            </div>
         </div>
 
       </div>
 
-      {/* RIGHT: Order Summary */}
+      {/* RIGHT: Final Invoice Summary */}
       <div className="lg:col-span-1">
          <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-sm sticky top-24">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-6">Order Summary</h3>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-6">Final Invoice</h3>
 
             <div className="space-y-4 text-sm">
                <div className="flex justify-between text-neutral-600">
-                  <span>Base Room Cost</span>
+                  <span>Base Cost</span>
                   <span>${BASE_COST.toLocaleString()}</span>
                </div>
                
                <div className="flex justify-between text-emerald-600 font-medium bg-emerald-50 -mx-2 px-2 py-1 rounded">
-                  <span>Markup ({markupType === 'percent' ? `${markupValue}%` : 'Fixed'})</span>
+                  <span>Agent Markup ({markupType === 'percent' ? `${markupValue}%` : 'Fixed'})</span>
                   <span>+${markupAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                </div>
 
@@ -346,16 +350,31 @@ function PaymentSection() {
                </div>
                
                <div className="border-t border-neutral-200 my-4 pt-4 flex justify-between items-center">
-                  <span className="font-bold text-lg text-neutral-900">Total</span>
+                  <span className="font-bold text-lg text-neutral-900">Grand Total</span>
                   <span className="font-bold text-2xl text-neutral-900">${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                </div>
             </div>
 
-            <button className="w-full mt-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors shadow-sm">
-                Pay Now
+            <button 
+                onClick={handleGenerateLink}
+                disabled={isGenerating}
+                className="w-full mt-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors shadow-sm flex justify-center items-center gap-2"
+            >
+                {isGenerating ? (
+                    <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Generating...
+                    </>
+                ) : (
+                    <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                        Generate Payment Link
+                    </>
+                )}
             </button>
-            <p className="text-xs text-center text-neutral-400 mt-4">
-                Secure SSL 256-bit encryption
+            <p className="text-xs text-center text-neutral-400 mt-4 leading-relaxed">
+                Generates a secure payment link to share with the client. <br/>
+                Includes automated invoice generation.
             </p>
          </div>
       </div>
@@ -376,15 +395,17 @@ interface GuestData {
   specialRequest?: string;
   status: 'Checked In' | 'Pending' | 'Checked Out';
   tag: 'VIP' | 'Regular' | 'Staff';
+  roomAllocated: boolean; // New Field
+  roomNumber?: string;    // Optional room number
 }
 
 const MOCK_GUESTS: GuestData[] = [
-  { id: 'g1', name: 'Rajesh Kumar', age: 34, gender: 'Male', checkIn: '2024-10-15', checkOut: '2024-10-18', specialRequest: 'Sea View', status: 'Checked In', tag: 'VIP' },
-  { id: 'g2', name: 'Priya Sharma', age: 28, gender: 'Female', checkIn: '2024-10-15', checkOut: '2024-10-17', status: 'Checked In', tag: 'Regular' },
-  { id: 'g3', name: 'Amit Patel', age: 45, gender: 'Male', checkIn: '2024-10-16', checkOut: '2024-10-19', specialRequest: 'Late Check-out', status: 'Pending', tag: 'VIP' },
-  { id: 'g4', name: 'Sneha Reddy', age: 31, gender: 'Female', checkIn: '2024-10-15', checkOut: '2024-10-18', status: 'Checked In', tag: 'Regular' },
-  { id: 'g5', name: 'John Doe', age: 29, gender: 'Male', checkIn: '2024-10-15', checkOut: '2024-10-18', status: 'Checked Out', tag: 'Staff' },
-  { id: 'g6', name: 'Jane Smith', age: 25, gender: 'Female', checkIn: '2024-10-16', checkOut: '2024-10-20', specialRequest: 'Vegan Meal', status: 'Pending', tag: 'Regular' },
+  { id: 'g1', name: 'Rajesh Kumar', age: 34, gender: 'Male', checkIn: '2024-10-15', checkOut: '2024-10-18', specialRequest: 'Sea View', status: 'Checked In', tag: 'VIP', roomAllocated: true, roomNumber: '305' },
+  { id: 'g2', name: 'Priya Sharma', age: 28, gender: 'Female', checkIn: '2024-10-15', checkOut: '2024-10-17', status: 'Checked In', tag: 'Regular', roomAllocated: true, roomNumber: '201' },
+  { id: 'g3', name: 'Amit Patel', age: 45, gender: 'Male', checkIn: '2024-10-16', checkOut: '2024-10-19', specialRequest: 'Late Check-out', status: 'Pending', tag: 'VIP', roomAllocated: false },
+  { id: 'g4', name: 'Sneha Reddy', age: 31, gender: 'Female', checkIn: '2024-10-15', checkOut: '2024-10-18', status: 'Checked In', tag: 'Regular', roomAllocated: true, roomNumber: '102' },
+  { id: 'g5', name: 'John Doe', age: 29, gender: 'Male', checkIn: '2024-10-15', checkOut: '2024-10-18', status: 'Checked Out', tag: 'Staff', roomAllocated: true, roomNumber: 'Staff-A' },
+  { id: 'g6', name: 'Jane Smith', age: 25, gender: 'Female', checkIn: '2024-10-16', checkOut: '2024-10-20', specialRequest: 'Vegan Meal', status: 'Pending', tag: 'Regular', roomAllocated: false },
     // Add more mock data if needed for pagination test
 ];
 
@@ -432,6 +453,7 @@ function GuestListTable({ eventId }: { eventId: string }) {
               <th className="px-6 py-4 font-semibold text-neutral-700">Name</th>
               <th className="px-6 py-4 font-semibold text-neutral-700">Age/Gender</th>
               <th className="px-6 py-4 font-semibold text-neutral-700">Check-In / Out</th>
+              <th className="px-6 py-4 font-semibold text-neutral-700">Room Allocated</th>
               <th className="px-6 py-4 font-semibold text-neutral-700">Status</th>
               <th className="px-6 py-4 font-semibold text-neutral-700">Tag</th>
               <th className="px-6 py-4 font-semibold text-neutral-700">Special Request</th>
@@ -453,6 +475,19 @@ function GuestListTable({ eventId }: { eventId: string }) {
                                 <span>In: {guest.checkIn}</span>
                                 <span className="text-xs text-neutral-400">Out: {guest.checkOut}</span>
                             </div>
+                        </td>
+                         <td className="px-6 py-4">
+                            {guest.roomAllocated ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Allocated {guest.roomNumber ? `(${guest.roomNumber})` : ''}
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                    Not Allocated
+                                </span>
+                            )}
                         </td>
                         <td className="px-6 py-4">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
