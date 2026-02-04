@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import PortalHeader from '@/components/portal/PortalHeader';
 import { mockHeadGuests, mockEvents } from '@/lib/mockData';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function PortalLayout({
     children,
@@ -30,12 +31,14 @@ export default function PortalLayout({
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <PortalHeader eventName={event.name} headGuestName={headGuest.name} />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {children}
-            </main>
-        </div>
+        <ProtectedRoute requiredRole="guest" guestId={guestId}>
+            <div className="min-h-screen bg-gray-50">
+                <PortalHeader eventName={event.name} headGuestName={headGuest.name} />
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {children}
+                </main>
+            </div>
+        </ProtectedRoute>
     );
 }
 
