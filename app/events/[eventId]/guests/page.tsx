@@ -46,8 +46,23 @@ export default function GuestsPage({
 
   const bookingStatus = "pending"; // Can be 'pending' or 'confirmed'
 
-  // Mock cancellation requests
-  const cancellationRequests = [
+  // Cancellation Form State
+  const [cancelName, setCancelName] = useState("");
+  const [cancelRoom, setCancelRoom] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+
+  // Mock Extra Facilities for Partial Refund
+  const EXTRA_FACILITIES = [
+    { id: "early_checkin", name: "Early Check-in", price: 2000 },
+    { id: "extra_bed", name: "Extra Bed", price: 1500 },
+    { id: "welcome_kit", name: "Welcome Kit & Fruits", price: 800 },
+    { id: "late_checkout", name: "Late Check-out", price: 1000 },
+  ];
+
+  const [removedFacilities, setRemovedFacilities] = useState<string[]>([]);
+
+  // Mock cancellation requests state
+  const [cancellationRequests, setCancellationRequests] = useState([
     {
       id: "1",
       guestName: "Rajesh Kumar",
@@ -64,7 +79,24 @@ export default function GuestsPage({
       status: "pending" as const,
       requestDate: "2026-02-03",
     },
-  ];
+  ]);
+
+  const handleCancelSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newRequest = {
+      id: Math.random().toString(36).substr(2, 9),
+      guestName: cancelName,
+      roomType: cancelRoom,
+      reason: cancelReason,
+      status: "pending" as const,
+      requestDate: new Date().toISOString().split("T")[0],
+    };
+    setCancellationRequests([newRequest, ...cancellationRequests]);
+    setCancelName("");
+    setCancelRoom("");
+    setCancelReason("");
+    alert("Cancellation request submitted successfully!");
+  };
 
   // Handle family member count change
   const handleFamilyCountChange = (count: string) => {
@@ -354,7 +386,167 @@ export default function GuestsPage({
             </form>
           </section>
 
-          {/* Cancellation Requests */}
+          {/* Submit Cancellation Request */}
+          <section className="card p-6">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-6">
+              Submit Cancellation Request
+            </h2>
+            <form onSubmit={handleCancelSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Guest Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={cancelName}
+                    onChange={(e) => setCancelName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-warning/20 focus:border-warning"
+                    placeholder="Enter your name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Room Type/Details *
+                  </label>
+                  <input
+                    type="text"
+                    value={cancelRoom}
+                    onChange={(e) => setCancelRoom(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-warning/20 focus:border-warning"
+                    placeholder="e.g. Deluxe Suite - Room 302"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Reason for Cancellation *
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  required
+                  rows={3}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-warning/20 focus:border-warning resize-none"
+                  placeholder="Please provide a brief reason for cancellation"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold rounded-lg transition-colors border border-neutral-900"
+              >
+                Submit Cancellation Request
+              </button>
+              <p className="text-xs text-neutral-500 text-center">
+                Note: Requests are subject to review and hotel cancellation
+                policies.
+              </p>
+            </form>
+          </section>
+
+          {/* Refund via Facility Removal (Easy Refund) */}
+          <section className="card p-6 border-l-4 border-corporate-blue-100 bg-corporate-blue-100/5">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">💰</span>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                Partial Refund (Facility Removal)
+              </h2>
+            </div>
+
+            <p className="text-sm text-neutral-600 mb-6">
+              Not planning to use certain amenities? You can request a partial
+              refund by removing extra facilities included in your room booking.
+              <span className="block mt-2 font-medium text-corporate-blue-100 italic">
+                ⚠️ Please check the room's cancellation policy to see the
+                eligible refund percentage.
+              </span>
+            </p>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-neutral-700 uppercase tracking-wider">
+                Select Facilities to Remove
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {EXTRA_FACILITIES.map((facility) => (
+                  <label
+                    key={facility.id}
+                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                      removedFacilities.includes(facility.id)
+                        ? "border-corporate-blue-100 bg-white shadow-sm"
+                        : "border-neutral-200 bg-neutral-50 hover:border-neutral-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={removedFacilities.includes(facility.id)}
+                        onChange={() => {
+                          if (removedFacilities.includes(facility.id)) {
+                            setRemovedFacilities(
+                              removedFacilities.filter(
+                                (id) => id !== facility.id,
+                              ),
+                            );
+                          } else {
+                            setRemovedFacilities([
+                              ...removedFacilities,
+                              facility.id,
+                            ]);
+                          }
+                        }}
+                        className="w-5 h-5 rounded text-corporate-blue-100 focus:ring-corporate-blue-100 border-neutral-300"
+                      />
+                      <span
+                        className={`font-medium ${removedFacilities.includes(facility.id) ? "text-neutral-900" : "text-neutral-600"}`}
+                      >
+                        {facility.name}
+                      </span>
+                    </div>
+                    <span className="text-corporate-blue-100 font-bold">
+                      + ₹{facility.price} refund
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {removedFacilities.length > 0 && (
+                <div className="mt-6 p-4 bg-white rounded-xl border border-corporate-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-neutral-600">
+                      Total Potential Refund:
+                    </span>
+                    <span className="text-2xl font-bold text-corporate-blue-100">
+                      ₹
+                      {EXTRA_FACILITIES.filter((f) =>
+                        removedFacilities.includes(f.id),
+                      )
+                        .reduce((acc, curr) => acc + curr.price, 0)
+                        .toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500 italic">
+                    * The final refund amount depends on the specific room
+                    cancellation policy and timing of the request.
+                  </p>
+                  <button
+                    onClick={() => {
+                      alert(
+                        `Request submitted to remove ${removedFacilities.length} facilities for a refund.`,
+                      );
+                      setRemovedFacilities([]);
+                    }}
+                    className="w-full mt-4 py-3 bg-corporate-blue-100 text-white font-bold rounded-lg hover:bg-corporate-blue-200 transition-colors shadow-lg shadow-corporate-blue-100/20"
+                  >
+                    Submit Refund Request
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Cancellation Requests List */}
           {cancellationRequests.length > 0 && (
             <section className="card p-6">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">

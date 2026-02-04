@@ -42,6 +42,16 @@ export default function PostBookingPage({
   const [showAssetConversion, setShowAssetConversion] = useState(false);
   const [assetConverted, setAssetConverted] = useState(false);
   const [costStrippingSaved, setCostStrippingSaved] = useState<string[]>([]);
+  const [selectedExtraFacilities, setSelectedExtraFacilities] = useState<
+    string[]
+  >([]);
+
+  const REMOVABLE_FACILITIES = [
+    { id: "meal_plan", name: "Meal Plan (Full Board)", price: 3500 },
+    { id: "extra_bed", name: "Extra Bed", price: 1500 },
+    { id: "airport_transfer", name: "Airport Transfer", price: 2000 },
+    { id: "spa_credit", name: "Spa & Wellness Credits", price: 2500 },
+  ];
 
   // Drag and drop state
   const [draggedGuest, setDraggedGuest] = useState<string | null>(null);
@@ -222,6 +232,7 @@ export default function PostBookingPage({
   // Action handlers
   const handleCostStripping = (cancellationId: string) => {
     setCostStrippingSaved([...costStrippingSaved, cancellationId]);
+    setSelectedExtraFacilities([]);
     // Update status to processing
     setCancellations(
       cancellations.map((c) =>
@@ -1416,44 +1427,115 @@ export default function PostBookingPage({
                       </div>
                     )}
 
-                    {/* Variable Cost Stripping */}
-                    <div className="card p-6 border-2 border-success">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-10 h-10 bg-success rounded-lg flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold">₹</span>
+                    {/* Simple Refund via Facility Removal */}
+                    <div className="card p-6 border-2 border-corporate-blue-100 bg-corporate-blue-100/5">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 bg-corporate-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-corporate-blue-100/20">
+                          <span className="text-white text-xl font-bold">
+                            ₹
+                          </span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-neutral-900 mb-1">
-                            Variable Cost Stripping
+                          <h3 className="font-bold text-neutral-900 text-lg mb-1">
+                            Simple Refund: Remove Extra Facilities
                           </h3>
-                          <p className="text-sm text-neutral-600 mb-4">
-                            Downgrade rate plan to recover variable costs
+                          <p className="text-sm text-neutral-600">
+                            Opt-out of non-essential amenities for a partial
+                            refund.
                           </p>
                         </div>
                       </div>
-                      <div className="bg-neutral-50 p-4 rounded-lg mb-4">
-                        <div className="text-sm text-neutral-700 mb-2">
-                          <strong>Strategy:</strong> Strip meal plans, extra
-                          beds, and other variable costs via API modification.
+
+                      <div className="bg-white rounded-xl border border-neutral-200 p-4 mb-6">
+                        <div className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
+                          Select amenities to strip
                         </div>
-                        <div className="text-sm font-semibold text-success">
-                          Recovery: ₹4,500 (36% of total cost)
+                        <div className="space-y-2">
+                          {REMOVABLE_FACILITIES.map((facility) => (
+                            <label
+                              key={facility.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                                selectedExtraFacilities.includes(facility.id)
+                                  ? "border-corporate-blue-100 bg-corporate-blue-100/5"
+                                  : "border-neutral-100 hover:border-neutral-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedExtraFacilities.includes(
+                                    facility.id,
+                                  )}
+                                  onChange={() => {
+                                    if (
+                                      selectedExtraFacilities.includes(
+                                        facility.id,
+                                      )
+                                    ) {
+                                      setSelectedExtraFacilities(
+                                        selectedExtraFacilities.filter(
+                                          (id) => id !== facility.id,
+                                        ),
+                                      );
+                                    } else {
+                                      setSelectedExtraFacilities([
+                                        ...selectedExtraFacilities,
+                                        facility.id,
+                                      ]);
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-corporate-blue-100 rounded border-neutral-300 focus:ring-corporate-blue-100"
+                                />
+                                <span className="text-sm font-medium text-neutral-700">
+                                  {facility.name}
+                                </span>
+                              </div>
+                              <span className="text-xs font-bold text-corporate-blue-100">
+                                + ₹{facility.price.toLocaleString()}
+                              </span>
+                            </label>
+                          ))}
                         </div>
                       </div>
+
+                      <div className="bg-warning/10 border-l-4 border-warning p-4 rounded-r-lg mb-6">
+                        <p className="text-xs text-warning-dark font-medium leading-relaxed">
+                          <strong>⚠️ Cancellation Policy Check:</strong> Please
+                          verify the room's specific cancellation policy. Final
+                          refund eligibility and percentage are dictated by the
+                          hotel's terms at the time of processing.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4 px-2">
+                        <span className="text-sm text-neutral-600 font-medium">
+                          Total Eligible Refund:
+                        </span>
+                        <span className="text-2xl font-black text-corporate-blue-100">
+                          ₹
+                          {REMOVABLE_FACILITIES.filter((f) =>
+                            selectedExtraFacilities.includes(f.id),
+                          )
+                            .reduce((sum, f) => sum + f.price, 0)
+                            .toLocaleString()}
+                        </span>
+                      </div>
+
                       {costStrippingSaved.includes(
                         selectedCancellationData.id,
                       ) ? (
-                        <div className="w-full py-2 bg-success/10 text-success font-medium rounded-lg text-center">
-                          ✓ Saved - Processing
+                        <div className="w-full py-4 bg-success/10 text-success font-bold rounded-xl text-center border-2 border-success/20 animate-in fade-in">
+                          ✓ Refund Request Submitted
                         </div>
                       ) : (
                         <button
                           onClick={() =>
                             handleCostStripping(selectedCancellationData.id)
                           }
-                          className="w-full py-2 bg-success hover:bg-success/90 text-white font-medium rounded-lg transition-colors"
+                          disabled={selectedExtraFacilities.length === 0}
+                          className="w-full py-4 bg-corporate-blue-100 hover:bg-corporate-blue-200 disabled:bg-neutral-200 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-corporate-blue-100/20 active:scale-[0.98]"
                         >
-                          Execute & Save
+                          Submit Optimization Request
                         </button>
                       )}
                     </div>
