@@ -102,6 +102,88 @@ export default function EventDashboardPage() {
           </p>
         </Link>
 
+        {/* Flights Section Toggle */}
+        <Link
+          href={`/events/${eventId}/flights`}
+          className="p-6 rounded-xl border text-left transition-all duration-200 group bg-white border-neutral-200 hover:border-sky-300 hover:shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <span className="p-2 rounded-lg bg-sky-50 text-sky-600">
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                />
+              </svg>
+            </span>
+          </div>
+          <h3 className="text-lg font-semibold text-neutral-900">Flights</h3>
+          <p className="text-sm mt-1 text-neutral-500">
+            Book searches and manage flight manifests.
+          </p>
+        </Link>
+
+        {/* Cabs Section Toggle (Non-functional) */}
+        <div className="p-6 rounded-xl border text-left transition-all duration-200 group bg-white border-neutral-200 hover:border-yellow-300 hover:shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <span className="p-2 rounded-lg bg-yellow-50 text-yellow-600">
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M13 10V3L4 14h7v7l9-11h-7z" 
+                />
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" 
+                    className="hidden"
+                />
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+              </svg>
+            </span>
+          </div>
+          <h3 className="text-lg font-semibold text-neutral-900">Cabs</h3>
+          <p className="text-sm mt-1 text-neutral-500">
+            Arrange transportation for guests.
+          </p>
+        </div>
+
+        {/* Catering Section Toggle (Non-functional) */}
+        <div className="p-6 rounded-xl border text-left transition-all duration-200 group bg-white border-neutral-200 hover:border-pink-300 hover:shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <span className="p-2 rounded-lg bg-pink-50 text-pink-600">
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </span>
+          </div>
+          <h3 className="text-lg font-semibold text-neutral-900">Catering</h3>
+          <p className="text-sm mt-1 text-neutral-500">
+            Menu planning and dietary requests.
+          </p>
+        </div>
+
         {/* Room Mapping Section Toggle */}
         <Link
           href={`/events/${eventId}/room-mapping`}
