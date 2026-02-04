@@ -8,9 +8,11 @@ import { SidebarProvider, useSidebar } from "@/lib/SidebarContext";
 function EventLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isGuestsPage = pathname?.includes("/guests");
+  const isPortalRoute = pathname?.includes("/portal");
   const { isCollapsed } = useSidebar();
 
-  if (isGuestsPage) {
+  // Portal routes have their own layout, so don't apply agent layout
+  if (isPortalRoute || isGuestsPage) {
     return <>{children}</>;
   }
 
