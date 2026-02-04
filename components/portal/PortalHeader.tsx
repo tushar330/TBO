@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import LogoutButton from '@/components/auth/LogoutButton';
 
 interface PortalHeaderProps {
     eventName: string;
@@ -50,9 +51,7 @@ export default function PortalHeader({ eventName, headGuestName }: PortalHeaderP
                         >
                             Guests
                         </Link>
-                        <button className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
-                            Logout
-                        </button>
+                        <LogoutButton />
                     </nav>
                 </div>
             </div>

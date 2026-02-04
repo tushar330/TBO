@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { EventProvider } from "@/lib/EventContext";
+import { AuthProvider } from "@/lib/AuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans`}>
-        <EventProvider>
-          {children}
-        </EventProvider>
+        <AuthProvider>
+          <EventProvider>
+            {children}
+          </EventProvider>
+        </AuthProvider>
       </body>
     </html>
   );

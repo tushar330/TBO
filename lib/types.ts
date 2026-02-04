@@ -83,3 +83,26 @@ export interface CuratedVenue {
     eventId: string;
     // Note: No pricing information exposed to Head Guests
 }
+
+// Authentication Types
+export type UserRole = 'agent' | 'guest';
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    eventId?: string; // For guests, which event they belong to
+}
+
+export interface AuthState {
+    isAuthenticated: boolean;
+    user: User | null;
+    login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+    logout: () => void;
+}
+
+export interface AuthCredentials {
+    email: string;
+    password: string;
+}

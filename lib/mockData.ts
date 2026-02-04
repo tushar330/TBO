@@ -174,3 +174,19 @@ export const mockCuratedVenues: CuratedVenue[] = [
     },
 ];
 
+// Hardcoded Authentication Credentials
+export const mockAgentCredentials = {
+    email: 'agent@tbo.com',
+    password: 'agent123',
+    name: 'TBO Agent',
+    id: 'agent-1',
+};
+
+export const mockGuestCredentials = mockHeadGuests.map(guest => ({
+    email: guest.email,
+    password: 'guest123', // Same password for all guests for simplicity
+    name: guest.name,
+    id: guest.id,
+    eventId: guest.eventId,
+}));
+
