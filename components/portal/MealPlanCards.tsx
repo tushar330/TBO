@@ -66,41 +66,38 @@ const plans: MealPlan[] = [
 
 export default function MealPlanCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
       {plans.map((plan) => (
         <div
           key={plan.type}
-          className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 hover:bg-white/10 transition-all group relative overflow-hidden"
+          className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all group"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400 group-hover:scale-110 transition-transform">
+          <div className="flex items-center justify-between mb-6">
+            <div className="p-3 bg-blue-50 rounded-xl text-blue-600 transition-transform">
               {plan.icon}
             </div>
-            <span className="text-[10px] font-mono text-cyan-500/70 uppercase">
-              ID: {plan.type.substring(0, 3)}-01
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Standard Plan
             </span>
           </div>
 
-          <h4 className="text-white font-bold mb-1 tracking-wide">
+          <h4 className="text-gray-900 font-black text-lg mb-1 tracking-tight">
             {plan.type}
           </h4>
 
-          <div className="flex items-center gap-1.5 mb-6">
+          <div className="flex items-center gap-1.5 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            <span className="text-[10px] text-gray-400 uppercase font-medium">
-              Auto-Matched to 450 Guests
+            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">
+              Curated for All Guests
             </span>
           </div>
 
           <button
             onClick={() => alert(`Opening ${plan.type} details...`)}
-            className="w-full py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-bold text-white transition-colors uppercase tracking-widest backdrop-blur-sm"
+            className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-xs font-black text-gray-900 transition-colors uppercase tracking-widest"
           >
-            View Menu
+            View Menu Details
           </button>
-
-          {/* Decorative selection light */}
-          <div className="absolute -right-4 -bottom-4 w-12 h-12 bg-blue-600/10 blur-2xl rounded-full" />
         </div>
       ))}
     </div>

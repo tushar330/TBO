@@ -11,7 +11,7 @@ export default function Navigation() {
           <img
             src="/images/logo.jpg"
             alt="TBO Logo"
-            className="h-25 w-25 object-contain rounded-lg"
+            className="h-12 w-12 object-contain rounded-lg shadow-sm"
           />
           <span className="text-white font-semibold text-lg">
             TBO Events Planner

@@ -26,90 +26,64 @@ const roomTypes = [
 
 export default function RoomIntelligence() {
   return (
-    <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold bg-gradient-to-r from-amber-400 to-orange-300 bg-clip-text text-transparent uppercase tracking-wider">
-          Accommodation Intelligence
-        </h3>
-        <span className="text-[10px] text-amber-400 font-mono border border-amber-500/30 px-2 py-0.5 rounded uppercase">
-          Config: Premium Block
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {roomTypes.map((room) => (
           <div
             key={room.name}
-            className="relative group overflow-hidden rounded-xl border border-white/10 hover:border-amber-500/50 transition-all"
+            className="group bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
           >
-            <div className="relative h-48 w-full">
+            <div className="relative h-56 w-full">
               <Image
                 src={room.image}
                 alt={room.name}
                 fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
-              {/* Status tag */}
-              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md border border-white/20 rounded px-2 py-1 flex items-center gap-1.5">
+              <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/95 backdrop-blur-sm border border-gray-100 rounded-full px-3 py-1 shadow-sm">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full ${room.status === "Optimal" ? "bg-green-500" : "bg-amber-500"} animate-pulse`}
+                  className={`w-2 h-2 rounded-full ${room.status === "Optimal" ? "bg-green-500" : "bg-amber-500"}`}
                 />
-                <span className="text-[9px] text-white font-bold uppercase tracking-widest">
+                <span className="text-[10px] text-gray-900 font-bold uppercase tracking-wider">
                   {room.status}
                 </span>
               </div>
             </div>
 
-            <div className="p-4 bg-white/5 backdrop-blur-md relative z-10">
-              <div className="flex justify-between items-start mb-3">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className="text-white font-bold text-lg tracking-tight">
+                  <h4 className="text-xl font-bold text-gray-900 tracking-tight">
                     {room.name}
                   </h4>
-                  <p className="text-[10px] text-amber-400/80 font-mono uppercase">
-                    {room.count} Allocated
+                  <p className="text-xs text-amber-600 font-bold uppercase mt-1">
+                    {room.count} Total Units
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter block">
+                  <span className="text-[10px] text-gray-400 uppercase font-black block">
                     Capacity
                   </span>
-                  <span className="text-white font-bold text-sm tracking-widest">
+                  <span className="text-gray-900 font-black text-base">
                     {room.capacity}
                   </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-2">
                 {room.features.map((f) => (
                   <span
                     key={f}
-                    className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 border border-white/10 text-gray-300"
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-gray-50 border border-gray-100 text-gray-600 font-semibold"
                   >
                     {f}
                   </span>
                 ))}
               </div>
             </div>
-
-            {/* Scan Line simulation for individual cards */}
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-amber-500/50 opacity-0 group-hover:opacity-100 group-hover:animate-[scan_2s_infinite_linear] pointer-events-none" />
           </div>
         ))}
       </div>
-
-      <style jsx>{`
-        @keyframes scan {
-          0% {
-            transform: translateY(0);
-          }
-          100% {
-            transform: translateY(192px);
-          }
-        }
-      `}</style>
     </div>
   );
 }
