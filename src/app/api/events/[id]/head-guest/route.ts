@@ -26,7 +26,9 @@ export async function POST(
         clerkUser = await client.users.createUser({
             emailAddress: [email],
             firstName: name.split(' ')[0],
-            lastName: name.split(' ').slice(1).join(' '),
+            lastName: name.split(' ').slice(1
+              
+            ).join(' '),
             password: 'ChangeMe123!', // Temporary password policy
             skipPasswordChecks: true,
             skipPasswordRequirement: true,
