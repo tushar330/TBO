@@ -35,75 +35,64 @@ export default function GuestsPage({ params }: { params: Promise<{ eventId: stri
     const [guests, setGuests] = useState<SubGuest[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchGuests = async () => {
-            if (!token) return;
+    const fetchGuests = async () => {
+        if (!token) return;
 
-            try {
-                setLoading(true);
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-                const response = await fetch(`${backendUrl}/api/v1/events/${eventId}/guests`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+        try {
+            setLoading(true);
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+            const response = await fetch(`${backendUrl}/api/v1/events/${eventId}/guests`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
-                if (!response.ok) {
-                    throw new Error("Failed to fetch guests");
-                }
-
-                const result: APIResponse = await response.json();
-                
-                if (result.success && result.data && result.data.guests) {
-                    const allGuests = result.data.guests;
-                    
-                    console.log("Looking for GuestID (Organizer):", guestId);
-                    
-                    // Validation: Check if the current user (guestId) exists in the list
-                    // This confirms they are part of the event, but we won't restrict the view 
-                    // to just their family if they are the "Head Guest" organizing others.
-                    // Based on user feedback: "guests are different they are just attending events"
-                    
-                    const currentHeadGuest = allGuests.find(g => {
-                         const gId = String(g.ID || g.id).trim().toLowerCase();
-                         return gId === String(guestId).trim().toLowerCase();
-                    });
-                    
-                    if (!currentHeadGuest) {
-                        console.warn("Current user ID not found in guest list. Showing all event guests assuming valid token.");
-                    } else {
-                        console.log("Organizer identified:", currentHeadGuest.Name);
-                    }
-
-                    // Map ALL guests to SubGuest format
-                    // We will still group them by FamilyID in the list component
-                    const mappedGuests: SubGuest[] = allGuests.map(g => ({
-                        id: g.ID || g.id,
-                        name: g.Name || g.name,
-                        email: g.Email || g.email,
-                        phone: g.Phone || g.phone,
-                        age: g.Age || g.age,
-                        headGuestId: guestId, 
-                        familyId: g.FamilyID || g.familyId || g.family_id,
-                        guestCount: 1, 
-                        roomGroupId: g.RoomGroupID || g.roomGroupId
-                    }));
-                    
-                    console.log(`Displaying ${mappedGuests.length} guests.`);
-
-                    setGuests(mappedGuests);
-                }
-
-
-
-            } catch (error) {
-                console.error("Error fetching guests:", error);
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                throw new Error("Failed to fetch guests");
             }
-        };
-        
-        // Wait for auth to be determined before fetching
+
+            const result: APIResponse = await response.json();
+            
+            if (result.success && result.data && result.data.guests) {
+                const allGuests = result.data.guests;
+                
+                console.log("Looking for GuestID (Organizer):", guestId);
+                
+                const currentHeadGuest = allGuests.find(g => {
+                     const gId = String(g.ID || g.id).trim().toLowerCase();
+                     return gId === String(guestId).trim().toLowerCase();
+                });
+                
+                if (!currentHeadGuest) {
+                    console.warn("Current user ID not found in guest list. Showing all event guests assuming valid token.");
+                } else {
+                    console.log("Organizer identified:", currentHeadGuest.Name);
+                }
+
+                const mappedGuests: SubGuest[] = allGuests.map(g => ({
+                    id: g.ID || g.id,
+                    name: g.Name || g.name,
+                    email: g.Email || g.email,
+                    phone: g.Phone || g.phone,
+                    age: g.Age || g.age,
+                    headGuestId: guestId, 
+                    familyId: g.FamilyID || g.familyId || g.family_id,
+                    guestCount: 1, 
+                    roomGroupId: g.RoomGroupID || g.roomGroupId
+                }));
+                
+                console.log(`Displaying ${mappedGuests.length} guests.`);
+
+                setGuests(mappedGuests);
+            }
+        } catch (error) {
+            console.error("Error fetching guests:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         if (isAuthenticated) {
             fetchGuests();
         }
@@ -129,6 +118,9 @@ export default function GuestsPage({ params }: { params: Promise<{ eventId: stri
                     initialGuests={guests} 
                     onUpdateGuest={handleUpdateGuest}
                     onDeleteGuest={handleDeleteGuest}
+                    eventId={eventId}
+                    token={token}
+                    onGuestAdded={fetchGuests}
                 />
                 )}
             </div>

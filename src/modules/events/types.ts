@@ -49,3 +49,14 @@ export interface Guest {
     allergies?: string;
     assigned: boolean;
 }
+
+export interface GuestInput {
+    name: string;
+    age: number;
+    type?: 'adult' | 'child';
+    phone?: string;
+    email?: string;
+    arrivalDate?: string;
+    departureDate?: string;
+    family_members?: GuestInput[];
+}

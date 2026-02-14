@@ -4,7 +4,7 @@
  */
 
 // Re-export from modules for backward compatibility
-export type { Event, HeadGuest, SubGuest, Guest } from '@/modules/events/types';
+export type { Event, HeadGuest, SubGuest, Guest, GuestInput } from '@/modules/events/types';
 
 // Inventory types
 export interface Hotel {
