@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { SubGuest } from '@/types';
+import { SubGuest, GuestInput } from '@/types';
 
 interface GuestListProps {
     initialGuests: SubGuest[];
     onUpdateGuest: (guest: SubGuest) => void;
     onDeleteGuest: (guestId: string) => void;
+    eventId: string;
+    token: string | null;
+    onGuestAdded?: () => void;
 }
 
-export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest }: GuestListProps) {
+export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest, eventId, token, onGuestAdded }: GuestListProps) {
     const [guests, setGuests] = useState<SubGuest[]>(initialGuests);
     
     // Sync local state if initialGuests changes (e.g. after API refetch parent-side)
@@ -155,29 +158,38 @@ export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest 
         setIsAddModalOpen(true);
     };
 
-    const handleSaveGuest = (guestData: Partial<SubGuest>) => {
+    const handleSaveGuest = async (guestData: GuestInput) => {
         if (editingGuest) {
-            // Edit Mode
-            const updatedGuest = { ...editingGuest, ...guestData } as SubGuest;
+            // Edit Mode — keep existing behavior
+            const updatedGuest = { ...editingGuest, name: guestData.name, age: guestData.age, email: guestData.email, phone: guestData.phone } as SubGuest;
             onUpdateGuest(updatedGuest);
             showToast('Guest updated successfully');
+            setIsAddModalOpen(false);
         } else {
-            // Add Mode - (Handling locally for now as API wasn't requested for Add, but keeping structure)
-            const newGuest: SubGuest = {
-                id: `sg-${Date.now()}`,
-                name: guestData.name!,
-                email: guestData.email,
-                phone: guestData.phone,
-                headGuestId: 'hg-1', 
-                roomGroupId: undefined,
-                familyId: guestData.familyId || `fam-${Date.now()}`,
-                ...guestData
-            } as SubGuest;
-             console.warn("Add Guest API not yet implemented used local only");
-             setGuests([...guests, newGuest]);
-             showToast('Guest added successfully');
+            // Add Mode — call the API
+            try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                const response = await fetch(`${backendUrl}/api/v1/events/${eventId}/guests`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(guestData),
+                });
+                if (!response.ok) {
+                    const result = await response.json().catch(() => ({}));
+                    throw new Error(result.error || 'Failed to add guest');
+                }
+                showToast('Guest added successfully');
+                setIsAddModalOpen(false);
+                onGuestAdded?.();
+            } catch (error: any) {
+                console.error('Error adding guest:', error);
+                showToast(error.message || 'Failed to add guest', 'error');
+            }
         }
-        setIsAddModalOpen(false);
     };
 
     return (
@@ -369,8 +381,8 @@ export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest 
             {/* Edit/Add Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
                             <h3 className="text-lg font-semibold text-gray-900">
                                 {editingGuest ? 'Edit Guest' : 'Add New Guest'}
                             </h3>
@@ -421,83 +433,158 @@ export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest 
     );
 }
 
+interface FamilyMemberForm {
+    id: string;
+    name: string;
+    age: string;
+}
+
 function GuestForm({ initialData, onSubmit, onCancel }: { 
     initialData: SubGuest | null, 
-    onSubmit: (data: Partial<SubGuest>) => void,
+    onSubmit: (data: GuestInput) => void,
     onCancel: () => void 
 }) {
-    const [formData, setFormData] = useState<Partial<SubGuest>>(initialData || {
-        name: '',
-        email: '',
-        phone: '',
-        age: undefined,
-        familyId: '', // Allow entering a Family ID manually or just hidden
-    });
+    const isEditMode = !!initialData;
+    const [name, setName] = useState(initialData?.name || '');
+    const [age, setAge] = useState(initialData?.age?.toString() || '');
+    const [email, setEmail] = useState(initialData?.email || '');
+    const [phone, setPhone] = useState(initialData?.phone || '');
+    const [arrivalDate, setArrivalDate] = useState('');
+    const [departureDate, setDepartureDate] = useState('');
+    const [numFamilyMembers, setNumFamilyMembers] = useState('0');
+    const [familyMembers, setFamilyMembers] = useState<FamilyMemberForm[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSubmit(formData);
+    const handleFamilyCountChange = (count: string) => {
+        const num = Math.max(0, parseInt(count) || 0);
+        setNumFamilyMembers(String(num));
+        const current = [...familyMembers];
+        if (num > current.length) {
+            for (let i = current.length; i < num; i++) {
+                current.push({ id: `fm-${i}`, name: '', age: '' });
+            }
+        } else {
+            current.splice(num);
+        }
+        setFamilyMembers(current);
     };
+
+    const updateFamilyMember = (id: string, field: keyof FamilyMemberForm, value: string) => {
+        setFamilyMembers(members => members.map(m => m.id === id ? { ...m, [field]: value } : m));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        const payload: GuestInput = {
+            name: name.trim(),
+            age: parseInt(age) || 0,
+            email: email.trim() || undefined,
+            phone: phone.trim() || undefined,
+            arrivalDate: arrivalDate ? new Date(arrivalDate).toISOString() : undefined,
+            departureDate: departureDate ? new Date(departureDate).toISOString() : undefined,
+        };
+
+        if (!isEditMode && familyMembers.length > 0) {
+            payload.family_members = familyMembers.map(m => ({
+                name: m.name.trim(),
+                age: parseInt(m.age) || 0,
+            }));
+        }
+
+        await onSubmit(payload);
+        setIsSubmitting(false);
+    };
+
+    const inputClass = "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm";
 
     return (
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Main Guest Fields */}
             <div>
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                <input 
-                    type="text" 
-                    required
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    value={formData.name || ''}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                />
+                <label className="block text-sm font-medium text-gray-700">Full Name *</label>
+                <input type="text" required className={inputClass} value={name} onChange={e => setName(e.target.value)} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input 
-                        type="email" 
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={formData.email || ''}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                    />
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Age *</label>
+                    <input type="number" min="0" max="120" required className={inputClass} value={age} onChange={e => setAge(e.target.value)} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input 
-                        type="tel" 
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={formData.phone || ''}
-                        onChange={e => setFormData({...formData, phone: e.target.value})}
-                    />
+                    <input type="tel" className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} />
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Age</label>
-                    <input 
-                        type="number" 
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={formData.age || ''}
-                        onChange={e => setFormData({...formData, age: parseInt(e.target.value) || undefined})}
-                    />
-                </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} />
             </div>
+
+            {!isEditMode && (
+                <>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Arrival Date</label>
+                            <input type="date" className={inputClass} value={arrivalDate} onChange={e => setArrivalDate(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Departure Date</label>
+                            <input type="date" className={inputClass} value={departureDate} onChange={e => setDepartureDate(e.target.value)} />
+                        </div>
+                    </div>
+
+                    {/* Family Members */}
+                    <div className="pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="block text-sm font-medium text-gray-700">Family Members</label>
+                            <input 
+                                type="number" min="0" max="20" 
+                                className="w-20 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                value={numFamilyMembers}
+                                onChange={e => handleFamilyCountChange(e.target.value)}
+                            />
+                        </div>
+
+                        {familyMembers.length > 0 && (
+                            <div className="space-y-3">
+                                {familyMembers.map((member, index) => (
+                                    <div key={member.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                        <p className="text-xs font-semibold text-gray-500 mb-2">Member {index + 1}</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="block text-xs text-gray-500 mb-1">Name *</label>
+                                                <input type="text" required className={inputClass} value={member.name} onChange={e => updateFamilyMember(member.id, 'name', e.target.value)} placeholder="Name" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-gray-500 mb-1">Age *</label>
+                                                <input type="number" min="0" max="120" required className={inputClass} value={member.age} onChange={e => updateFamilyMember(member.id, 'age', e.target.value)} placeholder="Age" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {familyMembers.length === 0 && (
+                            <p className="text-xs text-gray-400 italic">No family members. Change the count to add.</p>
+                        )}
+                    </div>
+                </>
+            )}
 
             <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-                <button 
-                    type="button" 
-                    onClick={onCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     Cancel
                 </button>
                 <button 
                     type="submit" 
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 font-semibold"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                    {initialData ? 'Save Changes' : 'Add Guest'}
+                    {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : `Add Guest${familyMembers.length > 0 ? ` (${1 + familyMembers.length})` : ''}`)}
                 </button>
             </div>
         </form>
