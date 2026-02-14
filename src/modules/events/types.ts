@@ -35,6 +35,7 @@ export interface SubGuest {
     guestCount?: number;
     headGuestId: string;
     roomGroupId?: string;
+    familyId?: string;
 }
 
 export interface Guest {

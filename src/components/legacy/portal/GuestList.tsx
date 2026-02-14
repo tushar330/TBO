@@ -1,20 +1,29 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { SubGuest } from '@/types';
 
 interface GuestListProps {
     initialGuests: SubGuest[];
+    onUpdateGuest: (guest: SubGuest) => void;
+    onDeleteGuest: (guestId: string) => void;
 }
 
-export default function GuestList({ initialGuests }: GuestListProps) {
+export default function GuestList({ initialGuests, onUpdateGuest, onDeleteGuest }: GuestListProps) {
     const [guests, setGuests] = useState<SubGuest[]>(initialGuests);
+    
+    // Sync local state if initialGuests changes (e.g. after API refetch parent-side)
+    useEffect(() => {
+        setGuests(initialGuests);
+    }, [initialGuests]);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     
     // --- Add/Edit State ---
-    const [editingGuest, setEditingGuest] = useState<SubGuest | null>(null); // If null, we are adding
+    const [editingGuest, setEditingGuest] = useState<SubGuest | null>(null);
 
     // --- Derived State ---
     const filteredGuests = useMemo(() => {
@@ -24,9 +33,55 @@ export default function GuestList({ initialGuests }: GuestListProps) {
         );
     }, [guests, searchQuery]);
 
+    // Group guests by FamilyID
+    const groupedGuests = useMemo(() => {
+        const groups = filteredGuests.reduce((acc, guest) => {
+            // Use familyId if present, else use ID to treat as individual
+            const key = guest.familyId || guest.id;
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(guest);
+            return acc;
+        }, {} as Record<string, SubGuest[]>);
+        return Object.values(groups);
+    }, [filteredGuests]);
+
+    // --- Delete Confirmation State ---
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        isOpen: boolean;
+        type: 'single' | 'batch';
+        guestId?: string; // For single delete
+    }>({ isOpen: false, type: 'single' });
+
+    // --- Toast State ---
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({
+        message: '',
+        type: 'success',
+        visible: false
+    });
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type, visible: true });
+        setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
+    };
+
+
+
     // --- Actions ---
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+    };
+
+    // --- Actions ---
+
+
+    const toggleRow = (id: string) => {
+        if (expandedRowId === id) {
+            setExpandedRowId(null);
+        } else {
+            setExpandedRowId(id);
+        }
     };
 
     const toggleSelectAll = () => {
@@ -48,7 +103,6 @@ export default function GuestList({ initialGuests }: GuestListProps) {
     };
 
     const handleExport = () => {
-        // Convert guests to CSV
         const headers = ['Name', 'Email', 'Phone', 'Room Group'];
         const rows = filteredGuests.map(g => [
             g.name,
@@ -74,17 +128,23 @@ export default function GuestList({ initialGuests }: GuestListProps) {
     };
 
     const handleDeleteSelected = () => {
-        if (!confirm(`Are you sure you want to delete ${selectedGuestIds.size} guests?`)) return;
-        setGuests(guests.filter(g => !selectedGuestIds.has(g.id)));
-        setSelectedGuestIds(new Set());
+        setDeleteConfirmation({ isOpen: true, type: 'batch' });
     };
 
     const handleDeleteSingle = (id: string) => {
-         if (!confirm('Are you sure you want to delete this guest?')) return;
-         setGuests(guests.filter(g => g.id !== id));
+         setDeleteConfirmation({ isOpen: true, type: 'single', guestId: id });
     };
 
-    // --- Modal Logic ---
+    const confirmDelete = () => {
+        if (deleteConfirmation.type === 'batch') {
+             selectedGuestIds.forEach(id => onDeleteGuest(id));
+             setSelectedGuestIds(new Set());
+        } else if (deleteConfirmation.type === 'single' && deleteConfirmation.guestId) {
+             onDeleteGuest(deleteConfirmation.guestId);
+        }
+        setDeleteConfirmation({ isOpen: false, type: 'single' });
+    };
+
     const openAddModal = () => {
         setEditingGuest(null);
         setIsAddModalOpen(true);
@@ -98,25 +158,48 @@ export default function GuestList({ initialGuests }: GuestListProps) {
     const handleSaveGuest = (guestData: Partial<SubGuest>) => {
         if (editingGuest) {
             // Edit Mode
-            setGuests(guests.map(g => g.id === editingGuest.id ? { ...g, ...guestData } : g));
+            const updatedGuest = { ...editingGuest, ...guestData } as SubGuest;
+            onUpdateGuest(updatedGuest);
+            showToast('Guest updated successfully');
         } else {
-            // Add Mode
+            // Add Mode - (Handling locally for now as API wasn't requested for Add, but keeping structure)
             const newGuest: SubGuest = {
                 id: `sg-${Date.now()}`,
                 name: guestData.name!,
                 email: guestData.email,
                 phone: guestData.phone,
-                headGuestId: 'hg-1', // Mock ID
+                headGuestId: 'hg-1', 
                 roomGroupId: undefined,
+                familyId: guestData.familyId || `fam-${Date.now()}`,
                 ...guestData
             } as SubGuest;
-            setGuests([...guests, newGuest]);
+             console.warn("Add Guest API not yet implemented used local only");
+             setGuests([...guests, newGuest]);
+             showToast('Guest added successfully');
         }
         setIsAddModalOpen(false);
     };
 
     return (
         <div className="space-y-4">
+            {/* Toast Notification */}
+            {toast.visible && (
+                <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg text-white shadow-lg transition-opacity z-50 flex items-center gap-2 ${
+                    toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+                }`}>
+                    {toast.type === 'success' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    ) : (
+                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    )}
+                    {toast.message}
+                </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <div className="relative flex-1">
@@ -181,77 +264,109 @@ export default function GuestList({ initialGuests }: GuestListProps) {
                                     />
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Family Members</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredGuests.map(guest => (
-                                <tr key={guest.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <input 
-                                            type="checkbox" 
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            checked={selectedGuestIds.has(guest.id)}
-                                            onChange={() => toggleSelectGuest(guest.id)}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">
-                                            {guest.name}
-                                            {(guest.guestCount || 1) > 1 && (
-                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                    +{ (guest.guestCount || 1) - 1 } Family
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-gray-500">{guest.age ? `${guest.age} yrs` : ''}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{guest.email || '-'}</div>
-                                        <div className="text-sm text-gray-500">{guest.phone || '-'}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                         {guest.roomGroupId ? (
-                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                Assigned
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                Unassigned
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button 
-                                            onClick={() => openEditModal(guest)}
-                                            className="text-blue-600 hover:text-blue-900 mr-4"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteSingle(guest.id)}
-                                            className="text-red-600 hover:text-red-900"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredGuests.length === 0 && (
+                            {groupedGuests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                         No guests found matching your search.
                                     </td>
                                 </tr>
+                            ) : (
+                                groupedGuests.map(group => {
+                                    const headGuest = group[0];
+                                    const otherMembers = group.slice(1);
+                                    const hasFamily = otherMembers.length > 0;
+                                    const isExpanded = expandedRowId === headGuest.id;
+
+                                    return (
+                                        <>
+                                            <tr key={headGuest.id} className={`hover:bg-gray-50 ${isExpanded ? "bg-purple-50" : ""}`}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        checked={selectedGuestIds.has(headGuest.id)}
+                                                        onChange={() => toggleSelectGuest(headGuest.id)}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button 
+                                                        onClick={() => hasFamily && toggleRow(headGuest.id)}
+                                                        className={`flex items-center gap-2 ${hasFamily ? 'cursor-pointer hover:text-blue-600' : 'cursor-default'}`}
+                                                    >
+                                                        {hasFamily && (
+                                                            <span className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                                                                ▶
+                                                            </span>
+                                                        )}
+                                                        <div className="text-sm font-medium text-gray-900 text-left">
+                                                            {headGuest.name}
+                                                        </div>
+                                                    </button>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-500">{headGuest.phone || '-'}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                     <div className="text-sm text-gray-500">{headGuest.age ? `${headGuest.age} yrs` : '-'}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                     <div className="text-sm text-gray-500">
+                                                        {hasFamily ? `${otherMembers.length} Family Member${otherMembers.length > 1 ? 's' : ''}` : 'None'}
+                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <button 
+                                                        onClick={() => openEditModal(headGuest)}
+                                                        className="text-blue-600 hover:text-blue-900 mr-4"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteSingle(headGuest.id)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && hasFamily && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan={6} className="px-6 py-4">
+                                                        <div className="ml-8 space-y-2">
+                                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Family Members</p>
+                                                            {otherMembers.map(member => (
+                                                                <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-sm">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="font-medium text-gray-900">{member.name}</span>
+                                                                        <span className="text-gray-500 text-xs">({member.age ? `${member.age} yrs` : '-'})</span>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <button onClick={() => openEditModal(member)} className="text-xs text-blue-600 hover:text-blue-800">Edit</button>
+                                                                        <button onClick={() => handleDeleteSingle(member.id)} className="text-xs text-red-600 hover:text-red-800">Delete</button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Edit/Add Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
@@ -271,11 +386,41 @@ export default function GuestList({ initialGuests }: GuestListProps) {
                     </div>
                 </div>
             )}
+            
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmation.isOpen && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center">
+                        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                             <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">Delete Guest?</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                            Are you sure you want to delete {deleteConfirmation.type === 'batch' ? `${selectedGuestIds.size} guests` : 'this guest'}? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-center gap-3">
+                            <button 
+                                onClick={() => setDeleteConfirmation({ isOpen: false, type: 'single' })}
+                                className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-// Simple Internal Form Component
 function GuestForm({ initialData, onSubmit, onCancel }: { 
     initialData: SubGuest | null, 
     onSubmit: (data: Partial<SubGuest>) => void,
@@ -286,7 +431,7 @@ function GuestForm({ initialData, onSubmit, onCancel }: {
         email: '',
         phone: '',
         age: undefined,
-        guestCount: 1
+        familyId: '', // Allow entering a Family ID manually or just hidden
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -309,7 +454,7 @@ function GuestForm({ initialData, onSubmit, onCancel }: {
             
             <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input 
                         type="email" 
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -318,7 +463,7 @@ function GuestForm({ initialData, onSubmit, onCancel }: {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
                     <input 
                         type="tel" 
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -330,24 +475,13 @@ function GuestForm({ initialData, onSubmit, onCancel }: {
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Age (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700">Age</label>
                     <input 
                         type="number" 
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         value={formData.age || ''}
                         onChange={e => setFormData({...formData, age: parseInt(e.target.value) || undefined})}
                     />
-                </div>
-                <div>
-                     <label className="block text-sm font-medium text-gray-700">Total Guests in Group</label>
-                    <input 
-                        type="number" 
-                        min="1"
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={formData.guestCount || 1}
-                        onChange={e => setFormData({...formData, guestCount: parseInt(e.target.value) || 1})}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Includes the primary guest (e.g. 1 = Self)</p>
                 </div>
             </div>
 
