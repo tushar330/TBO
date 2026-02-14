@@ -13,7 +13,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, userData: User) => void;
+  login: (token: string, userData: User, eventId?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -39,12 +39,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (newToken: string, userData: User) => {
+  const login = (newToken: string, userData: User, eventId?: string) => {
     setToken(newToken);
     setUser(userData);
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(userData));
-    router.push("/dashboard");
+    
+    if (userData.role === 'head_guest' && eventId) {
+        router.push(`/events/${eventId}/portal/${userData.id}`);
+    } else {
+        router.push("/dashboard");
+    }
   };
 
   const logout = () => {

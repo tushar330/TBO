@@ -39,7 +39,7 @@ export default function SignInPage() {
 
         console.log('Login success:', data);
         
-        login(data.token, data.user);
+        login(data.token, data.user, data.eventId);
 
     } catch (err: any) {
         console.error('Login error:', err);

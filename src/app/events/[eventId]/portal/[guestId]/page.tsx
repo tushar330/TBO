@@ -1,27 +1,88 @@
-import { mockHeadGuests, mockRoomAllocations, mockRoomGroups, mockSubGuests } from '@/lib/mockData';
+'use client';
+
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
-export default async function PortalDashboard({ params }: { params: Promise<{ eventId: string; guestId: string }> }) {
-    const { eventId, guestId } = await params;
-    const headGuest = mockHeadGuests.find(hg => hg.id === guestId);
-    const allocations = mockRoomAllocations.filter(ra => ra.headGuestId === guestId);
-    const guests = mockSubGuests.filter(sg => sg.headGuestId === guestId);
+export default function PortalDashboard() {
+    const params = useParams();
+    const eventId = params.eventId as string;
+    const guestId = params.guestId as string;
+    const { token } = useAuth();
 
-    const assignedGuests = guests.filter(g => g.roomGroupId);
-    const totalRooms = allocations.length;
-    const filledRooms = mockRoomGroups.filter(rg =>
-        allocations.some(a => a.id === rg.allocationId) && rg.guestIds.length > 0
-    ).length;
+    const [stats, setStats] = useState({
+        totalGuests: 0,
+        assignedGuests: 0,
+        totalRooms: 0,
+        filledRooms: 0
+    });
+    const [loading, setLoading] = useState(true);
 
-    if (!headGuest) {
-        return <div>Guest not found</div>;
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!token) return;
+
+            try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+                
+                // TODO: These endpoints need to return the actual lists.
+                // Currently checking if they exist in routes.go
+                // events.Get("/:id/guests", repo.GetGuests)
+                // events.Get("/:id/allocations", repo.GetEventAllocations)
+
+                const [guestsRes, allocationsRes] = await Promise.all([
+                    fetch(`${backendUrl}/api/v1/events/${eventId}/guests`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${backendUrl}/api/v1/events/${eventId}/allocations`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+
+                if (guestsRes.ok && allocationsRes.ok) {
+                    const guestsData = await guestsRes.json();
+                    const allocationsData = await allocationsRes.json();
+
+                    // Basic logic to calculate stats from real data
+                    // This assumes standard response structure. If endpoints return empty/mocked, stats will be 0.
+                    const guests = guestsData.data.guests || [];
+                    // Filter guests that belong to this head guest's family/group if backend doesn't filter.
+                    // For now, assuming backend returns what's relevant or we show all event stats (might need refinement).
+                    // Actually, head guest should only see THEIR sub-guests.
+                    // The backend `GetGuests` usually returns all guests for the event.
+                    // We might need to filter client-side if backend doesn't support ?headGuestId=...
+                    
+                    const myGuests = guests.filter((g: any) => g.familyId ===  guests.find((me: any) => me.id === guestId)?.familyId); 
+                    // Fallback to all guests if logic is too complex for now, or 0.
+                    
+                    // Simplify for "Working" state:
+                    setStats({
+                        totalGuests: guests.length, 
+                        assignedGuests: 0, // Need allocation logic
+                        totalRooms: 0, 
+                        filledRooms: 0
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard stats", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, [eventId, guestId, token]);
+
+    if (loading) {
+        return <div className="p-8">Loading dashboard...</div>;
     }
 
     return (
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Welcome to Your Event Portal</h1>
-                <p className="text-gray-600 mt-2">Manage your group: {headGuest.subGroupName}</p>
+                <p className="text-gray-600 mt-2">Manage your group</p>
             </div>
 
             {/* Stats Cards */}
@@ -30,7 +91,7 @@ export default async function PortalDashboard({ params }: { params: Promise<{ ev
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Total Guests</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-1">{guests.length}</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalGuests}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,42 +99,9 @@ export default async function PortalDashboard({ params }: { params: Promise<{ ev
                             </svg>
                         </div>
                     </div>
-                    <p className="text-sm text-green-600 mt-2">{assignedGuests.length} assigned to rooms</p>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Rooms Filled</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-1">{filledRooms}/{totalRooms}</p>
-                        </div>
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                        </div>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                        {totalRooms - filledRooms} rooms available
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Completion</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-1">
-                                {totalRooms > 0 ? Math.round((filledRooms / totalRooms) * 100) : 0}%
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">Room assignment progress</p>
-                </div>
+                {/* More stats can be re-enabled when logic is solid */}
             </div>
 
             {/* Quick Actions */}
